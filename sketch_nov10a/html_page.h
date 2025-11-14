@@ -199,7 +199,7 @@ const char index_html[] PROGMEM = R"rawliteral(
           <div class="card">
             <p>
               <i class="fas fa-lightbulb fa-2x ledOff" id="iconLED18"></i>
-              <strong class="title">(LED) 18</strong>
+              <strong class="title">(LED 8) built in</strong>
             </p>
             <p>GPIO state: <strong id="estadoLED18">Carregando...</strong></p>
             <label class="switch">

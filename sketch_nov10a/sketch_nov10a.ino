@@ -3,13 +3,15 @@
 #include <ESPAsyncWebServer.h>  // Inclui a biblioteca para servidor web assíncrono
 #include <AsyncTCP.h>           // Inclui a biblioteca para TCP assíncrono
 #include "html_page.h"          // Inclui o arquivo HTML que contém a página web
+#include <Adafruit_NeoPixel>
 
-const uint8_t LED_PIN = 18;     // Define o pino do LED
-const uint8_t BUTTON_PIN = 19;  // Define o pino do botão
+const uint8_t LED_PIN = 8;     // Define o pino do LED
+const uint8_t NUM_LED = 1;  // Define o pino do botão
 
+Adafruit_NeoPixel ledRgb(NUM_LED, LED_PIN, NEO_GRB + NEO_KHZ800);
 //Button btn(BUTTON_PIN);         // Cria um objeto Button para o botão como input pull-up
 
-bool statusLED = LOW;           // Status do LED  (LOW = Desligado / HIGH = Ligado)
+bool statusLED = ledRgb.clear();           // Status do LED  (LOW = Desligado / HIGH = Ligado)
 
 // Credenciais de rede WiFi
 const char* ssid     = "DTEL_N_INTERNET";
@@ -41,8 +43,8 @@ void notifyClients() {
 
 // Função para definir o estado do LED e notificar os clientes
 void setLED(bool state) {
-  statusLED = state;
-  digitalWrite(LED_PIN, statusLED ? HIGH : LOW);
+  ledRGB.getPixelColor();
+  ledRG.show(LED_PIN, statusLED ? HIGH : LOW);
   notifyClients();
 }
 
