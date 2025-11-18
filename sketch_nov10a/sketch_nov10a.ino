@@ -3,32 +3,32 @@
 #include <ESPAsyncWebServer.h>  // Inclui a biblioteca para servidor web assíncrono
 #include <AsyncTCP.h>           // Inclui a biblioteca para TCP assíncrono
 #include "html_page.h"          // Inclui o arquivo HTML que contém a página web
-#include <Adafruit_NeoPixel>
+#include <Adafruit_NeoPixel.h>
 
-const uint8_t LED_PIN = 8;     // Define o pino do LED
+const uint8_t LED_PIN = 8;  // Define o pino do LED
 const uint8_t NUM_LED = 1;  // Define o pino do botão
 
 Adafruit_NeoPixel ledRgb(NUM_LED, LED_PIN, NEO_GRB + NEO_KHZ800);
-//Button btn(BUTTON_PIN);         // Cria um objeto Button para o botão como input pull-up
 
-bool statusLED = ledRgb.clear();           // Status do LED  (LOW = Desligado / HIGH = Ligado)
+uint8_t brightness;
+bool statusLED;
 
 // Credenciais de rede WiFi
-const char* ssid     = "DTEL_N_INTERNET";
-const char* password = "wrn30000";
+const char *ssid = "DTEL_N_INTERNET";
+const char *password = "wrn30000";
 
 // Criação do servidor web e WebSocket
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
 // Evento WiFi IP
-void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info){
+void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info) {
   Serial.println("WiFi Conectado, IP:");
   Serial.println(WiFi.localIP());
 }
 
 // Evento WiFi Desconectado
-void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
+void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
   Serial.println("Desconectado do WiFi");
   Serial.print("WiFi perdeu a conexão. Razão: ");
   Serial.println(info.wifi_sta_disconnected.reason);
@@ -38,54 +38,73 @@ void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
 
 // Função para notificar todos os clientes conectados com o estado atual
 void notifyClients() {
-    ws.textAll(statusLED ? "on" : "off");
+  String msg = "LED=" + String(statusLED ? "on" : "off"); + "PWM=" + String(brightness); //LDR=" + String(analogRead(LDR_PIN)) + ";TEMP=" + String(dht.readTemperature()) + ";UMID=" + String(dht.readHumidity()) + ";
+  ws.textAll(msg);
 }
 
 // Função para definir o estado do LED e notificar os clientes
 void setLED(bool state) {
-  ledRGB.getPixelColor();
-  ledRG.show(LED_PIN, statusLED ? HIGH : LOW);
-  notifyClients();
+  statusLED = state;
+  if (statusLED == true) {
+    ledRgb.setPixelColor(0, 0, 255, 0);
+    ledRgb.show();
+    notifyClients();
+  } else if (statusLED == false) {
+    ledRgb.clear();
+    ledRgb.show();
+    notifyClients();
+  } else {
+    ledRgb.setPixelColor(0, 255, 0, 0);
+    ledRgb.show();
+  }
+}
+
+void setPWM(int value) {
+  brightness = value;
+  setLED(true);
 }
 
 // Função para lidar com o pressionamento do botão
-void handleButtonPress() {
+/*void handleButtonPress() {
   statusLED = !statusLED;
   setLED(statusLED);
   Serial.println("Botão pressionado, LED " + String(statusLED ? "ligado" : "desligado"));
-}
+}*/
 
 // Função para lidar com eventos do WebSocket
 void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
   switch (type) {
     case WS_EVT_CONNECT:
       Serial.printf("WebSocket client #%lu connected from %s\n", client->id(), client->remoteIP().toString().c_str());
-      client->text(String(statusLED ? "on" : "off"));     
+      client->text(String(statusLED ? "on" : "off"));
       break;
     case WS_EVT_DISCONNECT:
       Serial.printf("WebSocket client #%u disconnected\n", client->id());
       break;
-    case WS_EVT_DATA: {
-      String msg = "";
-      for (size_t i = 0; i < len; i++) {
-        msg += (char)data[i];
+    case WS_EVT_DATA:
+      {
+        String msg = "";
+        for (size_t i = 0; i < len; i++) {
+          msg += (char)data[i];
+        }
+        Serial.println("Mensagem recebida via WebSocket: " + msg);
+        if (msg == "on") {
+          setLED(true);
+        } else if (msg == "off") {
+          setLED(false);
+        } else if (msg.startsWith("PWM=")){
+          setPWM(msg.substring(4).toInt());
+        }
+        break;
       }
-      Serial.println("Mensagem recebida via WebSocket: " + msg);
-      if (msg == "on") {
-        setLED(true);
-      } else if (msg == "off") {
-        setLED(false);
-      }
-      break;
-    }
     default:
       break;
   }
 }
 
-void handleRoot(AsyncWebServerRequest *request){
+void handleRoot(AsyncWebServerRequest *request) {
   Serial.println("Acessando a página principal");
-  request->send(200, "text/html", index_html);    // Retorna o HTML para o cliente
+  request->send(200, "text/html", index_html);  // Retorna o HTML para o cliente
 }
 
 void handleNotFound(AsyncWebServerRequest *request) {
@@ -95,8 +114,8 @@ void handleNotFound(AsyncWebServerRequest *request) {
 
 void setup() {
   Serial.begin(115200);
-  pinMode(LED_PIN, OUTPUT);          // Configura o pino do LED como saída
-  digitalWrite(LED_PIN, LOW);        // Garante que o LED comece desligado
+  pinMode(LED_PIN, OUTPUT);    // Configura o pino do LED como saída
+  digitalWrite(LED_PIN, LOW);  // Garante que o LED comece desligado
 
   WiFi.mode(WIFI_STA);
   WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
@@ -115,23 +134,18 @@ void setup() {
     Serial.print(".");
   }
 
-  ws.onEvent(onWebSocketEvent); // Registra o evento do WebSocket
-  server.addHandler(&ws);       // Adiciona o WebSocket ao servidor   
+  ws.onEvent(onWebSocketEvent);  // Registra o evento do WebSocket
+  server.addHandler(&ws);        // Adiciona o WebSocket ao servidor
 
   // Definicao de Rotas do Servidor (como um Backend)
   server.on("/", HTTP_GET, handleRoot);
   server.onNotFound(handleNotFound);
 
-  server.begin(); // Inicia o servidor web
+  server.begin();  // Inicia o servidor web
   Serial.println("Servidor iniciado");
 }
 
 void loop() {
- // btn.update();         // Atualiza o estado do botão
-//  if (btn.wasPressed()) {
-//    handleButtonPress(); // Chama a função para lidar com o pressionamento do botão
-//  }
-  // Limpa conexões WebSocket desconectadas
   ws.cleanupClients();
-  delay(10); // Pequena pausa para evitar sobrecarga do loop
+  delay(10);  // Pequena pausa para evitar sobrecarga do loop
 }
