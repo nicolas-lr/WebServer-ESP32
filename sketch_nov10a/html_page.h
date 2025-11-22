@@ -8,7 +8,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Web Server ESP32</title>
+    <title>Perish Protect</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" />
     <style>
@@ -131,6 +131,12 @@ const char index_html[] PROGMEM = R"rawliteral(
       .grid-container .light-card {
         color: green;
       }
+      .grid-container .elevation-card {
+        color: var(--secondary-color);
+      }
+      .grid-container .pressure-card {
+        color: var(--secondary-color);
+      }
       input[type="range"] {
         width: 100%;
         margin: 10px 0;
@@ -187,34 +193,21 @@ const char index_html[] PROGMEM = R"rawliteral(
       }
     </style>
   </head>
-  <body>
+<body>
     <header>
-      <img src="https://embarcados.com.br/wp-content/uploads/2020/02/logo-238x76-1.png.webp" alt="logo_embarcados" />
-      <h1>ESP32-C6 Web Server</h1>
+            <h1>Perish Protect</h1>
+      <h2> Controle Para Insumos a Agranel </h2>
     </header>
     <main>
       <section class="section-content">
         <div class="grid-container">
-          <!-- CARD LED -->
-          <div class="card">
-            <p>
-              <i class="fas fa-lightbulb fa-2x ledOff" id="iconLED18"></i>
-              <strong class="title">(LED) 18</strong>
-            </p>
-            <p>GPIO state: <strong id="estadoLED18">Carregando...</strong></p>
-            <label class="switch">
-              <input type="checkbox" onchange="toggleLed(this)" id="led18" />
-              <span class="slider"></span>
-            </label>
-          </div>
-
           <!-- Temperatura -->
           <div class="card temp-umid-card">
             <p>
               <i class="fas fa-thermometer-half fa-2x"></i>
               <strong class="title">Temperatura</strong>
             </p>
-            <p class="title"><span>Carregando...</span>°C</p>
+            <p class="title"><span>31.45</span>°C</p>
           </div>
 
           <!-- Umidade -->
@@ -223,16 +216,38 @@ const char index_html[] PROGMEM = R"rawliteral(
               <i class="fas fa-water fa-2x"></i>
               <strong class="title">Umidade</strong>
             </p>
-            <p class="title"><span>Carregando...</span>%</p>
+            <p class="title"><span>60.50</span>%</p>
           </div>
 
-          <!-- Luz (LDR) -->
-          <div class="card light-card">
+          <!-- Pressão -->
+          <div class="card pressure-card">
             <p>
-              <i class="fas fa-sun fa-2x"></i>
-              <strong class="title">Luz</strong>
+              <i class="fa fa-cloud fa-2x" aria-hidden="true"></i>
+              <strong class="title">Pressão</strong>
             </p>
-            <p class="title"><span>Carregando...</span></p>
+            <p class="title"><span>1004.65</span></p>
+          </div>
+
+          <!-- Altitude -->
+          <div class="card elevation-card">
+            <p>
+              <i class="fa fa-arrows-v" aria-hidden="true"></i>
+              <strong class="title">Altitude</strong>
+            </p>
+            <p class="title"><span>71.85</span></p>
+          </div>
+
+          <!-- CARD LED -->
+          <div class="card">
+            <p>
+              <i class="fas fa-lightbulb fa-2x ledOff" id="iconLED18"></i>
+              <strong class="title">(LED) 18</strong>
+            </p>
+            <p>GPIO state: <strong id="estadoLED18">OFF</strong></p>
+            <label class="switch">
+              <input type="checkbox" onchange="toggleLed(this)" id="led18">
+              <span class="slider"></span>
+            </label>
           </div>
 
           <!-- PWM -->
@@ -241,7 +256,7 @@ const char index_html[] PROGMEM = R"rawliteral(
               <i class="fas fa-sun fa-2x"></i>
               <strong class="title">PWM</strong>
             </p>
-            <input type="range" id="pwmSlider" min="0" max="255" value="0" onchange="setPWM(this.value)" oninput="atualizarPWM(this.value)" />
+            <input type="range" id="pwmSlider" min="0" max="255" value="0" onchange="setPWM(this.value)" oninput="atualizarPWM(this.value)">
             <p class="title"><span id="pwmValue">0</span></p>
           </div>
         </div>
@@ -249,7 +264,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     </main>
     <footer class="footer-section">
       <div class="section-content">
-        <p class="copyright-text">&copy; Embarcados - Todos os direitos reservados</p>
+        <p class="copyright-text">© Embarcados - Todos os direitos reservados</p>
         <div class="social-link-list">
           <a href="https://www.linkedin.com/company/embarcados" class="social-link" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">
             <i class="fa-brands fa-linkedin"></i>
@@ -285,8 +300,11 @@ const char index_html[] PROGMEM = R"rawliteral(
             case "UMID":
               document.querySelectorAll(".temp-umid-card span")[1].innerText = val;
               break;
-            case "LDR":
-              document.querySelector(".light-card span").innerText = val;
+            case "PRESS":
+              document.querySelector(".pressure-card span").innerText = val;
+              break;
+            case "ALT":
+              document.querySelector(".elevation-card span").innerText = val;
               break;
             case "PWM":
               document.getElementById("pwmValue").innerText = val;
@@ -326,6 +344,6 @@ const char index_html[] PROGMEM = R"rawliteral(
         document.getElementById("led18").checked = estado == "on";
       }
     </script>
-  </body>
+</body>
 </html>
 )rawliteral";

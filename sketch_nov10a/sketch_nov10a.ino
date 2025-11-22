@@ -1,9 +1,17 @@
-/*#include <Button.h>             // Inclui a biblioteca para manipulação de botões */
+#include <Wire.h>
 #include <WiFi.h>               // Inclui a biblioteca WiFi para conectar ao WiFi
+#include "html_page.h"          // Inclui o arquivo HTML que contém a página web
 #include <ESPAsyncWebServer.h>  // Inclui a biblioteca para servidor web assíncrono
 #include <AsyncTCP.h>           // Inclui a biblioteca para TCP assíncrono
-#include "html_page.h"          // Inclui o arquivo HTML que contém a página web
 #include <Adafruit_NeoPixel.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
+
+#define SEALEVELPRESSURE_HPA (1013.25)
+#define BME280_I2C_SDA_PIN 6
+#define BME280_I2C_SCL_PIN 7
+
+Adafruit_BME280 bme;
 
 const uint8_t LED_PIN = 8;  // Define o pino do LED
 const uint8_t NUM_LED = 1;  // Define o pino do botão
@@ -12,6 +20,8 @@ Adafruit_NeoPixel ledRgb(NUM_LED, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 uint8_t brightness;
 bool statusLED;
+
+const uint32_t timeNotify = 2000;  // Tempo em milissegundos para notificar os clientes
 
 // Credenciais de rede WiFi
 const char *ssid = "DTEL_N_INTERNET";
@@ -38,38 +48,42 @@ void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
 
 // Função para notificar todos os clientes conectados com o estado atual
 void notifyClients() {
-  String msg = "LED=" + String(statusLED ? "on" : "off"); + "PWM=" + String(brightness); //LDR=" + String(analogRead(LDR_PIN)) + ";TEMP=" + String(dht.readTemperature()) + ";UMID=" + String(dht.readHumidity()) + ";
+  float temp = bme.readTemperature();
+  float press = bme.readPressure() / 100.0F;
+  float umid = bme.readHumidity();
+  float alt = bme.readAltitude(SEALEVELPRESSURE_HPA);
+
+  String msg = "TEMP=" + String(temp) + ";" + "PRESS=" + String(press) + ";" + "UMID=" + String(umid) + ";" + "ALT=" + String(alt) + ";" + "LED=" + String(statusLED ? "on" : "off") + ";" + "PWM=" + String(brightness) + ";";
   ws.textAll(msg);
 }
 
 // Função para definir o estado do LED e notificar os clientes
 void setLED(bool state) {
   statusLED = state;
-  if (statusLED == true) {
+
+  if (statusLED == true && brightness != 0) {
     ledRgb.setPixelColor(0, 0, 255, 0);
     ledRgb.show();
-    notifyClients();
-  } else if (statusLED == false) {
+  } else {
     ledRgb.clear();
     ledRgb.show();
-    notifyClients();
-  } else {
-    ledRgb.setPixelColor(0, 255, 0, 0);
-    ledRgb.show();
+    statusLED = false;
   }
+
+  String msgL = "LED=" + String(statusLED ? "on" : "off") + ";";
+  ws.textAll(msgL);
 }
+
 
 void setPWM(int value) {
   brightness = value;
-  setLED(true);
-}
+  ledRgb.setBrightness(brightness);
+  ledRgb.show();
+  setLED(brightness > 0);
 
-// Função para lidar com o pressionamento do botão
-/*void handleButtonPress() {
-  statusLED = !statusLED;
-  setLED(statusLED);
-  Serial.println("Botão pressionado, LED " + String(statusLED ? "ligado" : "desligado"));
-}*/
+  String msgP = "PWM=" + String(brightness) + ";";
+  ws.textAll(msgP);
+}
 
 // Função para lidar com eventos do WebSocket
 void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
@@ -95,6 +109,7 @@ void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsE
         } else if (msg.startsWith("PWM=")){
           setPWM(msg.substring(4).toInt());
         }
+        notifyClients();
         break;
       }
     default:
@@ -114,8 +129,13 @@ void handleNotFound(AsyncWebServerRequest *request) {
 
 void setup() {
   Serial.begin(115200);
-  pinMode(LED_PIN, OUTPUT);    // Configura o pino do LED como saída
-  digitalWrite(LED_PIN, LOW);  // Garante que o LED comece desligado
+  bool status;
+  Wire.begin(6, 7);
+  status = bme.begin(0x76, &Wire);
+  if (!status) {
+    Serial.println("Could not find a valid BME280 sensor, check wiring!");
+    while (1);
+  }
 
   WiFi.mode(WIFI_STA);
   WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
@@ -146,6 +166,12 @@ void setup() {
 }
 
 void loop() {
+    // Notifica clientes a cada timeNotify milissegundos
+  static uint32_t lastUpdate = 0;
+  if (millis() - lastUpdate >= timeNotify) {
+    lastUpdate = millis();
+    notifyClients();
+  }
   ws.cleanupClients();
   delay(10);  // Pequena pausa para evitar sobrecarga do loop
 }
