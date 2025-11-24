@@ -72,6 +72,19 @@ const char index_html[] PROGMEM = R"rawliteral(
         align-items: center;
         gap: 10px;
       }
+      .section-content .grid-container .monitor {
+        grid-column: 1/-1;
+        border-radius: 10px;
+        padding: 10px;
+        box-shadow: 4px 4px 4px 4px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        height: 150px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+      }
       .switch {
         position: relative;
         display: inline-block;
@@ -125,9 +138,12 @@ const char index_html[] PROGMEM = R"rawliteral(
       .ledOff {
         color: red;
       }
-      .grid-container .temp-umid-card {
+      .grid-container .temp-card {
         color: var(--secondary-color);
       }
+      .grid-container .umid-card {
+        color: var(--secondary-color);
+      }      
       .grid-container .light-card {
         color: green;
       }
@@ -201,8 +217,19 @@ const char index_html[] PROGMEM = R"rawliteral(
     <main>
       <section class="section-content">
         <div class="grid-container">
+
+          <!-- CARD Monitor -->
+          <div class="monitor">
+            <p>
+              <strong class="title">Status do ambiente</strong>
+            </p>
+            <p class="title">
+              <span id="envStatus" style="color: green;">Normal</span>
+            </p>
+          </div>
+
           <!-- Temperatura -->
-          <div class="card temp-umid-card">
+          <div class="card temp-card">
             <p>
               <i class="fas fa-thermometer-half fa-2x"></i>
               <strong class="title">Temperatura</strong>
@@ -211,7 +238,7 @@ const char index_html[] PROGMEM = R"rawliteral(
           </div>
 
           <!-- Umidade -->
-          <div class="card temp-umid-card">
+          <div class="card umid-card">
             <p>
               <i class="fas fa-water fa-2x"></i>
               <strong class="title">Umidade</strong>
@@ -236,6 +263,7 @@ const char index_html[] PROGMEM = R"rawliteral(
             </p>
             <p class="title"><span>71.85</span></p>
           </div>
+
 
           <!-- CARD LED -->
           <div class="card">
@@ -291,18 +319,60 @@ const char index_html[] PROGMEM = R"rawliteral(
           const [key, val] = p.split("=");
           switch (key) {
             case "LED":
-              console.log("LED state: " + val);
-              atualizarEstado(val);
+              if (val === "on" || val === "off") {
+                atualizarEstado(val);
+                }
               break;
             case "TEMP":
-              document.querySelector(".temp-umid-card span").innerText = val;
-              break;
+                const tempP = document.querySelector(".temp-card p");
+                const tempPInner = document.querySelector(".temp-card p.title");
+                  tempPInner.innerText = val;
+                const temp = parseFloat(val);
+                  if (temp > 36){
+                    tempP.style.color = "red";
+                    tempPInner.style.color = "red";
+                  } 
+                  else if (temp > 34 && temp < 36){
+                    tempP.style.color = "orange";
+                    tempPInner.style.color = "orange";
+                  } 
+                  else{
+                    tempP.style.color = getComputedStyle(document.documentElement).getPropertyValue("--secondary-color");
+                    tempPInner.style.color = getComputedStyle(document.documentElement).getPropertyValue("--secondary-color");
+                  } 
+                break;
             case "UMID":
-              document.querySelectorAll(".temp-umid-card span")[1].innerText = val;
-              break;
+                const humP = document.querySelector(".umid-card p");
+                const humPInner = document.querySelector(".umid-card p.title");
+                  humPInner.innerText = val;
+                const hum = parseFloat(val);
+                  if (hum > 65){
+                    humP.style.color = "red";
+                    humPInner.style.color = "red";
+                  } 
+                  else if (hum > 60 && hum < 65){
+                    humP.style.color = "orange";
+                    humPInner.style.color = "orange";
+                  } 
+                  else{
+                    humP.style.color = getComputedStyle(document.documentElement).getPropertyValue("--secondary-color");
+                    humPInner.style.color = getComputedStyle(document.documentElement).getPropertyValue("--secondary-color");
+                  } 
+                break;
             case "PRESS":
-              document.querySelector(".pressure-card span").innerText = val;
-              break;
+                const pressSpan = document.querySelector(".pressure-card span");
+                const pressP = document.querySelector(".pressure-card p");
+                  pressSpan.innerText = val;
+                const press = parseFloat(val);
+                  if (press >= 1006){
+                    pressSpan.style.color = "red";
+                    pressP.style.color = "red";
+                    }
+                  else{
+                    pressSpan.style.color = getComputedStyle(document.documentElement).getPropertyValue("--secondary-color");
+                    pressP.style.color = getComputedStyle(document.documentElement).getPropertyValue("--secondary-color");
+                    }
+                break;
             case "ALT":
               document.querySelector(".elevation-card span").innerText = val;
               break;
@@ -310,6 +380,14 @@ const char index_html[] PROGMEM = R"rawliteral(
               document.getElementById("pwmValue").innerText = val;
               document.getElementById("pwmSlider").value = val;
               break;
+            case "CLIMA":
+                const statusSpan = document.getElementById("envStatus");
+                statusSpan.innerText = val;
+
+                if (val === "Normal") statusSpan.style.color = "green";
+                else if (val === "Atencao") statusSpan.style.color = "orange";
+                else if (val === "Alerta") statusSpan.style.color = "red"; 
+              break;              
           }
         });
       };

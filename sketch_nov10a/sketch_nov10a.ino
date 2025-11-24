@@ -20,6 +20,9 @@ Adafruit_NeoPixel ledRgb(NUM_LED, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 uint8_t brightness;
 bool statusLED;
+String estadoLED;
+
+String estadoClima = "Normal";
 
 const uint32_t timeNotify = 2000;  // Tempo em milissegundos para notificar os clientes
 
@@ -53,36 +56,84 @@ void notifyClients() {
   float umid = bme.readHumidity();
   float alt = bme.readAltitude(SEALEVELPRESSURE_HPA);
 
-  String msg = "TEMP=" + String(temp) + ";" + "PRESS=" + String(press) + ";" + "UMID=" + String(umid) + ";" + "ALT=" + String(alt) + ";" + "LED=" + String(statusLED ? "on" : "off") + ";" + "PWM=" + String(brightness) + ";";
+  String clima = monitor(press, temp, umid);
+  if (clima != estadoClima) {
+    estadoClima = clima;
+    setLED(estadoClima);
+}
+
+  String msg = 
+      "TEMP=" + String(temp) + ";" +
+      "PRESS=" + String(press) + ";" +
+      "UMID=" + String(umid) + ";" +
+      "ALT=" + String(alt) + ";" +
+      "LED=" + String(statusLED ? "on" : "off") + ";" +
+      "PWM=" + String(brightness) + ";" +
+      "CLIMA=" + clima + ";";
+
   ws.textAll(msg);
 }
 
 // Função para definir o estado do LED e notificar os clientes
-void setLED(bool state) {
-  statusLED = state;
+void setLED(String novoEstado) {
 
-  if (statusLED == true && brightness != 0) {
-    ledRgb.setPixelColor(0, 0, 255, 0);
-    ledRgb.show();
-  } else {
+  if (novoEstado == "Normal") {  
+      ledRgb.setPixelColor(0, 0, 255, 0);
+      ledRgb.setBrightness(brightness);  
+      statusLED = true;
+      estadoLED = "Normal";
+  }
+  else if (novoEstado == "Atencao") {
+    ledRgb.setPixelColor(0, 252, 80, 8);  // laranja
+    if (brightness < 100){
+      ledRgb.setBrightness(100);
+    } else {
+      ledRgb.setBrightness(brightness);
+    }
+    statusLED = true;
+    estadoLED = "Atencao";
+  }
+  else if (novoEstado == "Alerta") {
+    ledRgb.setPixelColor(0, 255, 0, 0);    // vermelho
+    if (brightness < 100){
+      ledRgb.setBrightness(100);
+    } else {
+      ledRgb.setBrightness(brightness);
+    }
+    statusLED = true;
+    estadoLED = "Alerta";
+  }
+  else if (novoEstado == "off") {
     ledRgb.clear();
-    ledRgb.show();
     statusLED = false;
+    ledRgb.show();
+    ws.textAll("LED=off;");
+    return;
   }
 
-  String msgL = "LED=" + String(statusLED ? "on" : "off") + ";";
-  ws.textAll(msgL);
+  ledRgb.show();
+  ws.textAll("LED=" + novoEstado + ";");
 }
 
 
 void setPWM(int value) {
-  brightness = value;
-  ledRgb.setBrightness(brightness);
-  ledRgb.show();
-  setLED(brightness > 0);
+  brightness = value; 
+    ledRgb.setBrightness(brightness);
+    ledRgb.show();
+    setLED(estadoLED);
+  ws.textAll("PWM=" + String(brightness) + ";");
+}
 
-  String msgP = "PWM=" + String(brightness) + ";";
-  ws.textAll(msgP);
+String monitor(float press, float temp, float hum) {
+  if ((temp > 34.0 && hum > 60.0) || hum > 65 || press >= 1007.00 || temp > 36) {
+      return "Alerta";
+  }
+  else if ((temp > 34 && temp < 36) || (hum > 60 && hum < 65) || press > 1005.50) {
+      return "Atencao";
+  }
+  else {
+      return "Normal";
+  }
 }
 
 // Função para lidar com eventos do WebSocket
@@ -103,9 +154,10 @@ void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsE
         }
         Serial.println("Mensagem recebida via WebSocket: " + msg);
         if (msg == "on") {
-          setLED(true);
+          setLED("Normal");
+
         } else if (msg == "off") {
-          setLED(false);
+          setLED("off");
         } else if (msg.startsWith("PWM=")){
           setPWM(msg.substring(4).toInt());
         }
@@ -166,12 +218,13 @@ void setup() {
 }
 
 void loop() {
-    // Notifica clientes a cada timeNotify milissegundos
+  // Notifica clientes a cada timeNotify em milissegundos
   static uint32_t lastUpdate = 0;
   if (millis() - lastUpdate >= timeNotify) {
     lastUpdate = millis();
     notifyClients();
   }
+  
   ws.cleanupClients();
   delay(10);  // Pequena pausa para evitar sobrecarga do loop
 }
