@@ -141,6 +141,9 @@ const char index_html[] PROGMEM = R"rawliteral(
       .grid-container .temp-card {
         color: var(--secondary-color);
       }
+      .grid-container .tempIn-card {
+        color: var(--secondary-color);
+      }
       .grid-container .umid-card {
         color: var(--secondary-color);
       }      
@@ -180,26 +183,6 @@ const char index_html[] PROGMEM = R"rawliteral(
         background: green;
         cursor: pointer;
       }
-      .footer-section {
-        background-color: var(--footer-color);
-        color: var(--white-color);
-        padding: 20px 0;
-      }
-      .footer-section .section-content {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-      .footer-section :where(.copyright-text, .social-link, .dev-link) {
-        color: var(--white-color);
-      }
-      .footer-section .social-link-list {
-        display: flex;
-        gap: 20px;
-      }
-      .footer-section .social-link-list .social-link {
-        font-size: var(--font-size-l);
-      }
       @media screen and (max-width: 820px) {
         .footer-section .section-content {
           flex-direction: column;
@@ -228,11 +211,21 @@ const char index_html[] PROGMEM = R"rawliteral(
             </p>
           </div>
 
-          <!-- Temperatura -->
+          <!-- Temperatura Interna -->
+          <div class="card tempIn-card" id="inside">
+            <p>
+              <i class="fas fa-thermometer-half fa-2x"></i>
+              <strong class="title">Temperatura Interna</strong>
+            </p>
+            <p class="title"><span>Carregando...</span>°C</p>
+          </div>
+
+
+          <!-- Temperatura Externa -->
           <div class="card temp-card">
             <p>
               <i class="fas fa-thermometer-half fa-2x"></i>
-              <strong class="title">Temperatura</strong>
+              <strong class="title">Temperatura Externa</strong>
             </p>
             <p class="title"><span>31.45</span>°C</p>
           </div>
@@ -290,22 +283,6 @@ const char index_html[] PROGMEM = R"rawliteral(
         </div>
       </section>
     </main>
-    <footer class="footer-section">
-      <div class="section-content">
-        <p class="copyright-text">© Embarcados - Todos os direitos reservados</p>
-        <div class="social-link-list">
-          <a href="https://www.linkedin.com/company/embarcados" class="social-link" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">
-            <i class="fa-brands fa-linkedin"></i>
-          </a>
-          <a href="https://www.instagram.com/portalembarcados" class="social-link">
-            <i class="fa-brands fa-instagram"></i>
-          </a>
-        </div>
-        <p class="dev-text">
-          <a href="https://www.linkedin.com/in/iguilherme" class="dev-link">Desenvolvido por Guilherme Fernandes</a>
-        </p>
-      </div>
-    </footer>
 
     <script>
       let websocket = new WebSocket(`ws://${window.location.hostname}/ws`);
@@ -323,6 +300,27 @@ const char index_html[] PROGMEM = R"rawliteral(
                 atualizarEstado(val);
                 }
               break;
+
+           case "TEMPIN":
+                const tempInP = document.querySelector(".tempIn-card p");
+                const tempInPInner = document.querySelector(".tempIn-card p.title");
+                  tempInPInner.innerText = val;
+                const tempIn = parseFloat(val);
+                  if (tempIn > 36){
+                    tempInP.style.color = "red";
+                    tempInPInner.style.color = "red";
+                  } 
+                  else if (tempIn > 34 && tempIn < 36){
+                    tempInP.style.color = "orange";
+                    tempInPInner.style.color = "orange";
+                  } 
+                  else{
+                    tempInP.style.color = getComputedStyle(document.documentElement).getPropertyValue("--secondary-color");
+                    tempInPInner.style.color = getComputedStyle(document.documentElement).getPropertyValue("--secondary-color");
+                  } 
+                break;
+
+
             case "TEMP":
                 const tempP = document.querySelector(".temp-card p");
                 const tempPInner = document.querySelector(".temp-card p.title");

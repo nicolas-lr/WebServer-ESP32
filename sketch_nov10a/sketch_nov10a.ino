@@ -6,16 +6,22 @@
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
 #define SEALEVELPRESSURE_HPA (1013.25)
 #define BME280_I2C_SDA_PIN 6
 #define BME280_I2C_SCL_PIN 7
 
-Adafruit_BME280 bme;
-
 const uint8_t LED_PIN = 8;  // Define o pino do LED
 const uint8_t NUM_LED = 1;  // Define o pino do botão
+const int oneWireBus = 10;  //Define o GPIO do sensor de temperatura
+const byte temperaturePrecision = 11;
 
+OneWire oneWire(oneWireBus);
+DallasTemperature sensors(&oneWire);
+
+Adafruit_BME280 bme;
 Adafruit_NeoPixel ledRgb(NUM_LED, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 uint8_t brightness;
@@ -51,6 +57,9 @@ void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
 
 // Função para notificar todos os clientes conectados com o estado atual
 void notifyClients() {
+
+  sensors.requestTemperatures();
+  float tempIn = sensors.getTempCByIndex(0);
   float temp = bme.readTemperature();
   float press = bme.readPressure() / 100.0F;
   float umid = bme.readHumidity();
@@ -63,6 +72,7 @@ void notifyClients() {
 }
 
   String msg = 
+      "TEMPIN=" + String(tempIn) + ";" +
       "TEMP=" + String(temp) + ";" +
       "PRESS=" + String(press) + ";" +
       "UMID=" + String(umid) + ";" +
@@ -124,11 +134,11 @@ void setPWM(int value) {
   ws.textAll("PWM=" + String(brightness) + ";");
 }
 
-String monitor(float press, float temp, float hum) {
-  if ((temp > 34.0 && hum > 60.0) || hum > 65 || press >= 1007.00 || temp > 36) {
+String monitor(float press, float tempIn, float hum) {
+  if ((tempIn > 34.0 && hum > 60.0) || hum > 65 || press >= 1007.00 || tempIn > 36) {
       return "Alerta";
   }
-  else if ((temp > 34 && temp < 36) || (hum > 60 && hum < 65) || press > 1005.50) {
+  else if ((tempIn > 34 && tempIn < 36) || (hum > 60 && hum < 65) || press > 1005.50) {
       return "Atencao";
   }
   else {
@@ -183,6 +193,11 @@ void setup() {
   Serial.begin(115200);
   bool status;
   Wire.begin(6, 7);
+  
+  pinMode(oneWireBus, INPUT);
+  sensors.setResolution(temperaturePrecision);
+  
+  sensors.begin();
   status = bme.begin(0x76, &Wire);
   if (!status) {
     Serial.println("Could not find a valid BME280 sensor, check wiring!");
