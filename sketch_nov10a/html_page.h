@@ -211,21 +211,11 @@ const char index_html[] PROGMEM = R"rawliteral(
             </p>
           </div>
 
-          <!-- Temperatura Interna -->
-          <div class="card tempIn-card" id="inside">
-            <p>
-              <i class="fas fa-thermometer-half fa-2x"></i>
-              <strong class="title">Temperatura Interna</strong>
-            </p>
-            <p class="title"><span>Carregando...</span>°C</p>
-          </div>
-
-
           <!-- Temperatura Externa -->
           <div class="card temp-card">
             <p>
               <i class="fas fa-thermometer-half fa-2x"></i>
-              <strong class="title">Temperatura Externa</strong>
+              <strong class="title">Temperatura</strong>
             </p>
             <p class="title"><span>31.45</span>°C</p>
           </div>
@@ -247,16 +237,6 @@ const char index_html[] PROGMEM = R"rawliteral(
             </p>
             <p class="title"><span>1004.65</span></p>
           </div>
-
-          <!-- Altitude -->
-          <div class="card elevation-card">
-            <p>
-              <i class="fa fa-arrows-v" aria-hidden="true"></i>
-              <strong class="title">Altitude</strong>
-            </p>
-            <p class="title"><span>71.85</span></p>
-          </div>
-
 
           <!-- CARD LED -->
           <div class="card">
@@ -295,32 +275,6 @@ const char index_html[] PROGMEM = R"rawliteral(
         partes.forEach((p) => {
           const [key, val] = p.split("=");
           switch (key) {
-            case "LED":
-              if (val === "on" || val === "off") {
-                atualizarEstado(val);
-                }
-              break;
-
-           case "TEMPIN":
-                const tempInP = document.querySelector(".tempIn-card p");
-                const tempInPInner = document.querySelector(".tempIn-card p.title");
-                  tempInPInner.innerText = val;
-                const tempIn = parseFloat(val);
-                  if (tempIn > 36){
-                    tempInP.style.color = "red";
-                    tempInPInner.style.color = "red";
-                  } 
-                  else if (tempIn > 34 && tempIn < 36){
-                    tempInP.style.color = "orange";
-                    tempInPInner.style.color = "orange";
-                  } 
-                  else{
-                    tempInP.style.color = getComputedStyle(document.documentElement).getPropertyValue("--secondary-color");
-                    tempInPInner.style.color = getComputedStyle(document.documentElement).getPropertyValue("--secondary-color");
-                  } 
-                break;
-
-
             case "TEMP":
                 const tempP = document.querySelector(".temp-card p");
                 const tempPInner = document.querySelector(".temp-card p.title");
@@ -339,6 +293,7 @@ const char index_html[] PROGMEM = R"rawliteral(
                     tempPInner.style.color = getComputedStyle(document.documentElement).getPropertyValue("--secondary-color");
                   } 
                 break;
+
             case "UMID":
                 const humP = document.querySelector(".umid-card p");
                 const humPInner = document.querySelector(".umid-card p.title");
@@ -357,6 +312,7 @@ const char index_html[] PROGMEM = R"rawliteral(
                     humPInner.style.color = getComputedStyle(document.documentElement).getPropertyValue("--secondary-color");
                   } 
                 break;
+
             case "PRESS":
                 const pressSpan = document.querySelector(".pressure-card span");
                 const pressP = document.querySelector(".pressure-card p");
@@ -371,13 +327,12 @@ const char index_html[] PROGMEM = R"rawliteral(
                     pressP.style.color = getComputedStyle(document.documentElement).getPropertyValue("--secondary-color");
                     }
                 break;
-            case "ALT":
-              document.querySelector(".elevation-card span").innerText = val;
-              break;
+
             case "PWM":
               document.getElementById("pwmValue").innerText = val;
               document.getElementById("pwmSlider").value = val;
               break;
+
             case "CLIMA":
                 const statusSpan = document.getElementById("envStatus");
                 statusSpan.innerText = val;

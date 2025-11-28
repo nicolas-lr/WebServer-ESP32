@@ -30,8 +30,8 @@ String estadoClima = "Normal";
 const uint32_t timeNotify = 2000;  // Tempo em milissegundos para notificar os clientes
 
 // Credenciais de rede WiFi
-const char *ssid = "DTEL_N_INTERNET";
-const char *password = "wrn30000";
+const char *ssid = "JJ losko";
+const char *password = "HEYAsom1";
 
 // Criação do servidor web e WebSocket
 AsyncWebServer server(80);
@@ -58,7 +58,6 @@ void notifyClients() {
   float temp = bme.readTemperature();
   float press = bme.readPressure() / 100.0F;
   float umid = bme.readHumidity();
-  float alt = bme.readAltitude(SEALEVELPRESSURE_HPA);
 
   String clima = monitor(press, temp, umid);
   if (clima != estadoClima) {
@@ -70,7 +69,6 @@ void notifyClients() {
       "TEMP=" + String(temp) + ";" +
       "PRESS=" + String(press) + ";" +
       "UMID=" + String(umid) + ";" +
-      "ALT=" + String(alt) + ";" +
       "LED=" + String(statusLED ? "on" : "off") + ";" +
       "PWM=" + String(brightness) + ";" +
       "CLIMA=" + clima + ";";
@@ -131,7 +129,6 @@ void setLED(String novoEstado) {
   ws.textAll("LED=" + novoEstado + ";");
 }
 
-
 void setPWM(int value) {
   brightness = value; 
     ledRgb.setBrightness(brightness);
@@ -141,10 +138,10 @@ void setPWM(int value) {
 }
 
 String monitor(float press, float temp, float hum) {
-  if ((temp > 34.0 && hum > 60.0) || hum > 65 || press >= 1007.00 || temp > 36) {
+  if ((temp > 34.0 && hum > 60.0) || hum > 65 || press >= 1022.00 || temp > 36) {
       return "Alerta";
   }
-  else if ((temp > 34 && temp < 36) || (hum > 60 && hum < 65) || press > 1005.50) {
+  else if ((temp > 34 && temp < 36) || (hum > 60 && hum < 65) || press > 1017.00) {
       return "Atencao";
   }
   else {
