@@ -30,8 +30,8 @@ String estadoClima = "Normal";
 const uint32_t timeNotify = 2000;  // Tempo em milissegundos para notificar os clientes
 
 // Credenciais de rede WiFi
-const char *ssid = "JJ losko";
-const char *password = "HEYAsom1";
+const char *ssid = "abuble";
+const char *password = "123321123";
 
 // Criação do servidor web e WebSocket
 AsyncWebServer server(80);
@@ -131,9 +131,8 @@ void setLED(String novoEstado) {
 
 void setPWM(int value) {
   brightness = value; 
-    ledRgb.setBrightness(brightness);
-    ledRgb.show();
-    setLED(estadoLED);
+  ledRgb.setBrightness(brightness);
+  ledRgb.show();
   ws.textAll("PWM=" + String(brightness) + ";");
 }
 
